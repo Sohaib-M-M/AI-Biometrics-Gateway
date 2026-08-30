@@ -1,0 +1,109 @@
+<!doctype html>
+<html>
+  <head>
+    <style>
+      body {
+        font-family: "SFMono-Regular", Consolas, monospace;
+        background: #0c0f11;
+        color: #c7d1d6;
+        padding: 10px;
+        margin: 0;
+        overflow: hidden;
+      }
+      textarea {
+        width: 95%;
+        height: 160px;
+        background: #14181b;
+        color: #33ff99;
+        border: 1px solid #2c363c;
+        padding: 15px;
+        font-size: 15px;
+        outline: none;
+        resize: none;
+        font-family: inherit;
+        line-height: 1.5;
+      }
+      textarea:focus {
+        border-color: #33ff99;
+        box-shadow: 0 0 10px rgba(51, 255, 153, 0.2);
+      }
+      button {
+        margin-top: 15px;
+        padding: 12px 24px;
+        background: transparent;
+        border: 1px solid #33ff99;
+        color: #33ff99;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        transition: all 0.2s;
+      }
+      button:hover {
+        background: #33ff99;
+        color: #0c0f11;
+      }
+    </style>
+  </head>
+  <body>
+    <textarea
+      id="box"
+      placeholder="Type your free text here (at least 15 words) to generate your unique biometric footprint..."
+    ></textarea>
+    <br />
+    <button id="btn">Analyze My Footprint</button>
+
+    <script>
+      function sendMessageToStreamlit(type, data) {
+        window.parent.postMessage({ isStreamlitMessage: true, type: type, ...data }, "*");
+      }
+      function init() {
+        sendMessageToStreamlit("streamlit:componentReady", { apiVersion: 1 });
+        sendMessageToStreamlit("streamlit:setFrameHeight", { height: 280 });
+      }
+      window.addEventListener("message", function (event) {
+        if (event.data.type === "streamlit:render") {
+          sendMessageToStreamlit("streamlit:setFrameHeight", { height: 280 });
+        }
+      });
+      init();
+
+      let rawLog = [];
+      let keyPresses = {};
+      const box = document.getElementById("box");
+      const btn = document.getElementById("btn");
+
+      box.addEventListener("keydown", (e) => {
+        if (e.key.length !== 1) return; // نلتقط الحروف القابلة للطباعة فقط
+        keyPresses[e.key] = Date.now();
+      });
+
+      box.addEventListener("keyup", (e) => {
+        if (e.key.length !== 1) return;
+        if (keyPresses[e.key]) {
+          rawLog.push({ key: e.key, down: keyPresses[e.key], up: Date.now() });
+          delete keyPresses[e.key];
+        }
+      });
+
+      btn.addEventListener("click", () => {
+        if (rawLog.length < 15) {
+          alert("Please type a bit more text for accurate biometric analysis.");
+          return;
+        }
+        let attemptData = [];
+        for (let i = 0; i < rawLog.length; i++) {
+          let hold = (rawLog[i].up - rawLog[i].down) / 1000.0;
+          let flight = i > 0 ? (rawLog[i].down - rawLog[i - 1].up) / 1000.0 : 0;
+
+          // تصفية أزمنة التوقف الطويلة (مثلاً إذا توقف المستخدم للتفكير) حتى لا تتشوه الرسوم البيانية
+          if (flight > 1.5) flight = 1.5;
+
+          attemptData.push({ id: i + 1, key: rawLog[i].key, hold_time: hold, flight_time: flight });
+        }
+        sendMessageToStreamlit("streamlit:setComponentValue", { value: attemptData });
+      });
+    </script>
+  </body>
+</html>

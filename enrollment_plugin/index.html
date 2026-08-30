@@ -1,0 +1,167 @@
+<!doctype html>
+<html>
+  <head>
+    <style>
+      body {
+        font-family: "SFMono-Regular", Consolas, monospace;
+        background: #0c0f11;
+        color: #33ff99;
+        text-align: center;
+        padding: 20px;
+        overflow: hidden;
+      }
+      h3 {
+        color: #c7d1d6;
+        font-weight: normal;
+        letter-spacing: 1px;
+      }
+      input {
+        background: #1c2226;
+        color: #c7d1d6;
+        border: 1px solid #2c363c;
+        padding: 12px;
+        font-size: 16px;
+        width: 80%;
+        text-align: center;
+        outline: none;
+        margin-top: 15px;
+        letter-spacing: 2px;
+      }
+      input:focus {
+        border-color: #33ff99;
+      }
+      .status {
+        margin-top: 15px;
+        font-size: 13px;
+        color: #ffb020;
+        letter-spacing: 1px;
+      }
+      .counter {
+        font-size: 20px;
+        margin-top: 10px;
+        color: #33ff99;
+      }
+      .target {
+        color: #ff3b47;
+        font-weight: bold;
+        border: 1px dashed #ff3b47;
+        padding: 2px 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <h3>Operator Motor-Memory Calibration</h3>
+    <p>Target Command: <span class="target">OVERRIDE-HYDRA-7745</span></p>
+    <div class="counter">Attempts: <span id="count">0</span> / 15</div>
+    <input
+      type="text"
+      id="pwd"
+      autocomplete="off"
+      spellcheck="false"
+      placeholder="Type command exactly and press Enter"
+    />
+    <div class="status" id="status">Awaiting baseline input...</div>
+
+    <script>
+      function sendMessageToStreamlit(type, data) {
+        window.parent.postMessage({ isStreamlitMessage: true, type: type, ...data }, "*");
+      }
+      function init() {
+        sendMessageToStreamlit("streamlit:componentReady", { apiVersion: 1 });
+        sendMessageToStreamlit("streamlit:setFrameHeight", { height: 300 });
+      }
+      window.addEventListener("message", function (event) {
+        if (event.data.type === "streamlit:render") {
+          sendMessageToStreamlit("streamlit:setFrameHeight", { height: 300 });
+        }
+      });
+      init();
+
+      const targetPwd = "OVERRIDE-HYDRA-7745";
+      let attempts = 0;
+      const maxAttempts = 15;
+      let rawLog = [];
+      let keyPresses = {};
+      let allData = [];
+      const inp = document.getElementById("pwd");
+      const status = document.getElementById("status");
+      const countSpan = document.getElementById("count");
+
+      inp.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          if (inp.value.trim().toUpperCase() === targetPwd) {
+            let cleanSeq = [];
+            let tIndex = targetPwd.length - 1;
+            for (let i = rawLog.length - 1; i >= 0; i--) {
+              if (rawLog[i].key.toUpperCase() === targetPwd[tIndex].toUpperCase()) {
+                cleanSeq.unshift(rawLog[i]);
+                tIndex--;
+                if (tIndex < 0) break;
+              }
+            }
+
+            let attemptData = [];
+            for (let i = 0; i < cleanSeq.length; i++) {
+              let hold = (cleanSeq[i].up - cleanSeq[i].down) / 1000.0;
+              let flight = i > 0 ? (cleanSeq[i].down - cleanSeq[i - 1].up) / 1000.0 : 0;
+              attemptData.push({
+                attempt: attempts + 1,
+                key: cleanSeq[i].key,
+                hold_time: hold,
+                flight_time: flight,
+              });
+            }
+            allData.push(...attemptData);
+            attempts++;
+            countSpan.innerText = attempts;
+
+            inp.value = "";
+            rawLog = [];
+            keyPresses = {};
+
+            if (attempts >= maxAttempts) {
+              inp.disabled = true;
+              status.style.color = "#33ff99";
+              status.innerText = "Calibration complete. Transmitting to Neural Engine...";
+              sendMessageToStreamlit("streamlit:setComponentValue", { value: allData });
+            } else {
+              inp.disabled = true;
+              let timeLeft = 3;
+              status.style.color = "#ffb020";
+              status.innerText = `Cooldown sequence initiated. Relax hands... ${timeLeft}s`;
+              let timer = setInterval(() => {
+                timeLeft--;
+                if (timeLeft > 0) {
+                  status.innerText = `Cooldown sequence initiated. Relax hands... ${timeLeft}s`;
+                } else {
+                  clearInterval(timer);
+                  inp.disabled = false;
+                  inp.focus();
+                  status.style.color = "#33ff99";
+                  status.innerText = "System ready. Continue typing.";
+                }
+              }, 1000);
+            }
+          } else {
+            status.style.color = "#ff3b47";
+            status.innerText = "Command mismatch. Calibration requires precise string.";
+            inp.value = "";
+            rawLog = [];
+            keyPresses = {};
+          }
+          return;
+        }
+        if (e.key.length !== 1) return;
+        keyPresses[e.key] = Date.now();
+      });
+
+      inp.addEventListener("keyup", (e) => {
+        if (e.key.length !== 1) return;
+        if (keyPresses[e.key]) {
+          rawLog.push({ key: e.key, down: keyPresses[e.key], up: Date.now() });
+          delete keyPresses[e.key];
+        }
+      });
+    </script>
+  </body>
+</html>
