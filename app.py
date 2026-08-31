@@ -67,6 +67,8 @@ if raw_keystrokes:
     if ai_scaler:
         X_test_live = pd.DataFrame(ai_scaler.transform(X_test_live), columns=X_test_live.columns)
     
+    prediction = ai_model.predict(X_test_live)
+    
     # استخراج مؤشر الثقة الدقيق
     confidence_score = ai_model.decision_function(X_test_scaled)[0]
     
