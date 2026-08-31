@@ -6,11 +6,6 @@ import joblib
 # 1. إعداد الصفحة لتكون واسعة بالكامل وإخفاء القائمة الجانبية مبدئياً
 st.set_page_config(page_title="HYDRA-1 SCADA Control", page_icon="☢️", layout="wide", initial_sidebar_state="collapsed")
 
-# 2. حقن كود CSS لإزالة جميع هوامش Streamlit الافتراضية وجعل الشاشة كاملة
-# 2. حقن كود CSS لإزالة جميع هوامش Streamlit وجعل الشاشة كاملة ومتجانسة
-
-# 2. حقن كود CSS لجعل الشاشة كاملة ومتجانسة، وإظهار زر الهامبرغر بلون نيون
-
 # 2. حقن كود CSS لجعل الشاشة كاملة ومتجانسة، وإظهار زر الهامبرغر بلون نيون
 st.markdown("""
     <style>
@@ -58,11 +53,11 @@ def load_model():
 
 ai_model, required_features = load_model()
 
-# 4. تسجيل المكون
-keystroke_plugin = components.declare_component("keystroke_plugin", path="keystroke_plugin")
+# 4. استدعاء المكون من الملف الخارجي (بدلاً من تعريفه هنا)
+from components_loader import keystroke_plugin
 
-# 5. عرض لوحة SCADA بكامل الارتفاع (1100 بكسل)
-raw_keystrokes = keystroke_plugin(height=1100)
+# 5. عرض لوحة SCADA بكامل الارتفاع مع إضافة المُعرّف الفريد (key)
+raw_keystrokes = keystroke_plugin(height=1100, key="scada_main_terminal")
 
 # 6. معالجة البيانات عند استلامها من المتصفح
 if raw_keystrokes:
