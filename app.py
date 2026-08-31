@@ -1,36 +1,20 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import pandas as pd
 import joblib
 
-# 1. إعداد الصفحة لتكون واسعة بالكامل وإخفاء القائمة الجانبية مبدئياً
+# استدعاء المكون من مدير المكونات الخارجي
+from components_loader import keystroke_plugin
+
+# 1. إعداد الصفحة
 st.set_page_config(page_title="HYDRA-1 SCADA Control", page_icon="☢️", layout="wide", initial_sidebar_state="collapsed")
 
-# 2. حقن كود CSS لجعل الشاشة كاملة ومتجانسة، وإظهار زر الهامبرغر بلون نيون
+# 2. حقن كود CSS
 st.markdown("""
     <style>
-        /* إزالة المساحات الفارغة من الجوانب والأعلى */
-        .block-container {
-            padding: 0rem !important;
-            max-width: 100% !important;
-        }
-        
-        /* إخفاء القائمة السفلية */
+        .block-container { padding: 0rem !important; max-width: 100% !important; }
         footer {visibility: hidden;}
-        
-        /* جعل الشريط العلوي شفافاً لكي تندمج اللوحة */
-        header[data-testid="stHeader"] {
-            background: transparent !important;
-        }
-        
-        /* 🟢 السر هنا: إظهار زر الهامبرغر وتلوينه بالأخضر النيون ليناسب الواجهة */
-        [data-testid="collapsedControl"] svg {
-            fill: #33ff99 !important;
-            width: 2rem !important;
-            height: 2rem !important;
-        }
-        
-        /* تلوين خلفية Streamlit بالكامل لتطابق تصميم SCADA */
+        header[data-testid="stHeader"] { background: transparent !important; }
+        [data-testid="collapsedControl"] svg { fill: #33ff99 !important; width: 2rem !important; height: 2rem !important; }
         [data-testid="stAppViewContainer"] {
             background-color: #0c0f11 !important;
             background-image:
@@ -38,28 +22,25 @@ st.markdown("""
                 linear-gradient(90deg, rgba(51, 255, 153, 0.02) 1px, transparent 1px) !important;
             background-size: 40px 40px !important;
         }
-        
-        /* تعديل ألوان خطوط النتائج الأمنية السفلية */
         [data-testid="stMetricLabel"] p { color: #c7d1d6 !important; font-size: 16px !important; font-family: monospace !important; }
         [data-testid="stMetricValue"] { color: #33ff99 !important; font-family: monospace !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. تحميل النموذج 
+# 3. تحميل النموذج والمُسوّي (Scaler)
 @st.cache_resource
 def load_model():
     data = joblib.load('biometric_model.pkl')
-    return data['model'], data['features']
+    # نستخدم data.get لتجنب انهيار النظام إذا كان الملف القديم ما زال في الذاكرة
+    scaler = data.get('scaler', None)
+    return data['model'], scaler, data['features']
 
-ai_model, required_features = load_model()
+ai_model, ai_scaler, required_features = load_model()
 
-# 4. استدعاء المكون من الملف الخارجي (بدلاً من تعريفه هنا)
-from components_loader import keystroke_plugin
-
-# 5. عرض لوحة SCADA بكامل الارتفاع مع إضافة المُعرّف الفريد (key)
+# 4. عرض لوحة SCADA
 raw_keystrokes = keystroke_plugin(height=1100, key="scada_main_terminal")
 
-# 6. معالجة البيانات عند استلامها من المتصفح
+# 5. معالجة البيانات
 if raw_keystrokes:
     test_df = pd.DataFrame(raw_keystrokes)
     
@@ -82,10 +63,13 @@ if raw_keystrokes:
             X_test_live[col] = 0
     X_test_live = X_test_live[required_features]
     
+    # تطبيق الـ Scaler إذا كان موجوداً
+    if ai_scaler:
+        X_test_live = pd.DataFrame(ai_scaler.transform(X_test_live), columns=X_test_live.columns)
+    
     prediction = ai_model.predict(X_test_live)
     confidence_score = ai_model.decision_function(X_test_live)[0]
     
-    # عرض النتيجة أسفل اللوحة مباشرة
     st.markdown("<br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:

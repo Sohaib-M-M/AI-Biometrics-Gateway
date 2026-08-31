@@ -1,7 +1,9 @@
 import streamlit as st
 import pandas as pd
 from sklearn.ensemble import IsolationForest
+from sklearn.preprocessing import StandardScaler
 import joblib
+import os
 
 # استدعاء المكون الجاهز من الملف الذي أنشأناه في الخارج
 from components_loader import enrollment_plugin
@@ -43,16 +45,22 @@ if enrollment_data:
         
     X_enroll = pd.DataFrame(features_list).fillna(0)
     
-    model = IsolationForest(n_estimators=100, contamination=0.05, random_state=42)
-    model.fit(X_enroll)
+    # 1. توحيد المقاييس (Feature Scaling) لضمان عدم طغيان خصائص على أخرى
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X_enroll)
     
+    # 2. تضييق دائرة القبول برفع نسبة التلوث إلى 20% (Contamination=0.20)
+    model = IsolationForest(n_estimators=150, contamination=0.20, random_state=42)
+    model.fit(X_scaled)
+    
+    # 3. حفظ المُسوّي (Scaler) مع النموذج
     exported_data = {
         'model': model,
+        'scaler': scaler,
         'features': X_enroll.columns.tolist()
     }
     
     # تحديد مسار الحفظ في المجلد الرئيسي
-    import os
     parent_dir = os.path.dirname(os.path.dirname(__file__))
     model_save_path = os.path.join(parent_dir, 'biometric_model.pkl')
     
@@ -60,5 +68,5 @@ if enrollment_data:
     
     st.cache_resource.clear()
     
-    st.success(f"✅ Calibration Successful! AI Model trained on {len(X_enroll)} natural samples and saved securely.")
+    st.success(f"✅ Calibration Successful! AI Model and Scaler trained on {len(X_enroll)} natural samples and saved securely.")
     st.balloons()
