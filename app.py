@@ -68,21 +68,33 @@ if raw_keystrokes:
         X_test_live = pd.DataFrame(ai_scaler.transform(X_test_live), columns=X_test_live.columns)
     
     prediction = ai_model.predict(X_test_live)
-    
-    # استخراج مؤشر الثقة الدقيق
-    confidence_score = ai_model.decision_function(X_test_scaled)[0]
+    confidence_score = ai_model.decision_function(X_test_live)[0]
     
     # 🛑 هندسة عتبة الأمان (Security Threshold)
-    # أي شخص يحصل على أقل من 0.03 سيتم رفضه فوراً حتى لو كان يكتب بسرعة
     SECURITY_THRESHOLD = 0.0300
+    is_authorized = confidence_score >= SECURITY_THRESHOLD
+    
+    # --- تصميم الواجهة البصرية المتفاعلة (Dynamic UI) ---
+    theme_color = "#33ff99" if is_authorized else "#ff3b47"
+    bg_color = "rgba(51, 255, 153, 0.05)" if is_authorized else "rgba(255, 59, 71, 0.05)"
+    status_text = "OVERRIDE AUTHORIZED: Operator typing dynamics verified." if is_authorized else "SYSTEM LOCKDOWN: Unauthorized physical access detected."
+    icon = "🔓" if is_authorized else "🔒"
+    
+    bar_pct = min(100, max(0, (confidence_score / 0.08) * 100))
+    
+    # كود HTML مصمم بدون مسافات بادئة لمنع ظهور صندوق الأكواد
+    custom_dashboard = f"""
+<div style="border: 1px solid {theme_color}; background-color: {bg_color}; padding: 24px; margin-top: 10px; font-family: 'SFMono-Regular', ui-monospace, Menlo, Consolas, monospace; text-align: center; box-shadow: 0 0 20px {bg_color}, inset 0 0 15px {bg_color};">
+<div style="color: #c7d1d6; font-size: 13px; letter-spacing: 3px; text-transform: uppercase;">Neurological Confidence Score</div>
+<div style="color: {theme_color}; font-size: 48px; font-weight: bold; margin: 12px 0; text-shadow: 0 0 12px {theme_color}; letter-spacing: 2px;">{confidence_score:.4f}</div>
+<div style="width: 60%; margin: 0 auto; background-color: #0c0f11; border: 1px solid #2c363c; height: 12px; position: relative;">
+<div style="width: {bar_pct}%; background: linear-gradient(90deg, transparent, {theme_color}); height: 100%; box-shadow: 0 0 10px {theme_color}; transition: width 0.8s ease-in-out;"></div>
+</div>
+<div style="color: {theme_color}; font-size: 14px; letter-spacing: 1.5px; margin-top: 20px; text-transform: uppercase;">{icon} {status_text}</div>
+</div>
+"""
     
     st.markdown("<br>", unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1, 2, 1])
+    col1, col2, col3 = st.columns([1, 4, 1])
     with col2:
-        st.metric(label="🔍 Neurological Confidence Score", value=f"{confidence_score:.4f}")
-        
-        # التقييم بناءً على العتبة الصارمة بدلاً من التقييم الافتراضي
-        if confidence_score >= SECURITY_THRESHOLD:
-            st.success("🟢 OVERRIDE AUTHORIZED: Operator typing dynamics verified.")
-        else:
-            st.error("🔴 SYSTEM LOCKDOWN: Unauthorized physical access detected or confidence too low!")
+        st.markdown(custom_dashboard, unsafe_allow_html=True)
