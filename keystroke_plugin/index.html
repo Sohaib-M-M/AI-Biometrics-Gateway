@@ -1043,11 +1043,13 @@
 
       overrideInput.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
-          if (overrideInput.value === targetCommand) {
+          // التعديل الهندسي 1: توحيد حالة الأحرف لمطابقة محرك الواجهة
+          if (overrideInput.value.trim().toUpperCase() === targetCommand) {
             let cleanSeq = [];
             let tIndex = targetCommand.length - 1;
             for (let i = rawLog.length - 1; i >= 0; i--) {
-              if (rawLog[i].key === targetCommand[tIndex]) {
+              // التعديل الهندسي 2: تحويل الحرف الملتقط إلى كبير لضمان المطابقة
+              if (rawLog[i].key.toUpperCase() === targetCommand[tIndex]) {
                 cleanSeq.unshift(rawLog[i]);
                 tIndex--;
                 if (tIndex < 0) break;
@@ -1058,7 +1060,12 @@
             for (let i = 0; i < cleanSeq.length; i++) {
               let hold = (cleanSeq[i].up - cleanSeq[i].down) / 1000.0;
               let flight = i > 0 ? (cleanSeq[i].down - cleanSeq[i - 1].up) / 1000.0 : 0;
-              attemptData.push({ key: cleanSeq[i].key, hold_time: hold, flight_time: flight });
+              // التعديل الهندسي 3: إرسال الحروف الكبيرة لبايثون ليتعرف عليها نموذج الذكاء الاصطناعي
+              attemptData.push({
+                key: cleanSeq[i].key.toUpperCase(),
+                hold_time: hold,
+                flight_time: flight,
+              });
             }
 
             // إرسال البيانات لبايثون
