@@ -67,14 +67,20 @@ if raw_keystrokes:
     if ai_scaler:
         X_test_live = pd.DataFrame(ai_scaler.transform(X_test_live), columns=X_test_live.columns)
     
-    prediction = ai_model.predict(X_test_live)
-    confidence_score = ai_model.decision_function(X_test_live)[0]
+    # استخراج مؤشر الثقة الدقيق
+    confidence_score = ai_model.decision_function(X_test_scaled)[0]
+    
+    # 🛑 هندسة عتبة الأمان (Security Threshold)
+    # أي شخص يحصل على أقل من 0.03 سيتم رفضه فوراً حتى لو كان يكتب بسرعة
+    SECURITY_THRESHOLD = 0.0300
     
     st.markdown("<br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.metric(label="🔍 Neurological Confidence Score", value=f"{confidence_score:.4f}")
-        if prediction[0] == 1:
+        
+        # التقييم بناءً على العتبة الصارمة بدلاً من التقييم الافتراضي
+        if confidence_score >= SECURITY_THRESHOLD:
             st.success("🟢 OVERRIDE AUTHORIZED: Operator typing dynamics verified.")
         else:
-            st.error("🔴 SYSTEM LOCKDOWN: Unauthorized physical access detected!")
+            st.error("🔴 SYSTEM LOCKDOWN: Unauthorized physical access detected or confidence too low!")
