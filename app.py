@@ -116,3 +116,32 @@ if raw_keystrokes:
     except Exception as e:
         # التقاط أي انهيار صامت وعرضه للمطور
         st.error(f"⚠️ System encountered a data parsing anomaly. Please try again. ({str(e)})")
+
+# --- Discreet Developer Credit ---
+credit_html = """
+<style>
+.terminal-footer {
+    position: fixed;
+    left: 20px;
+    bottom: 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.35);
+    z-index: 999;
+    letter-spacing: 0.5px;
+}
+.terminal-footer a {
+    color: rgba(255, 255, 255, 0.5);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+.terminal-footer a:hover {
+    color: #00ffcc;
+    text-decoration: underline;
+}
+</style>
+<div class="terminal-footer">
+    SYS_ENG: Sohaib Mosalem // <a href="https://www.linkedin.com/in/https://www.linkedin.com/in/sohaib-m-m/" target="_blank">LinkedIn</a>
+</div>
+"""
+st.markdown(credit_html, unsafe_allow_html=True)
