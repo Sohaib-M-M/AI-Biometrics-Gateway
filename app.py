@@ -59,11 +59,18 @@ if raw_keystrokes:
                 'std_hold': test_df['hold_time'].std() if len(test_df) > 1 else 0,
                 'std_flight': test_df['flight_time'].std() if len(test_df) > 1 else 0
             }
+            total_hold = test_df['hold_time'].sum()
+            safe_total_hold = total_hold if total_hold > 0 else 1.0
+            hold_times = test_df['hold_time'].tolist()
             
             total_flight = test_df['flight_time'].sum()
             safe_total_flight = total_flight if total_flight > 0 else 1.0
             
             flight_times = test_df['flight_time'].tolist()
+            
+            for i in range(len(hold_times)):
+                f_dict[f'hold_ratio_{i}'] = hold_times[i] / safe_total_hold
+                
             for i in range(1, len(flight_times)):
                 f_dict[f'digraph_trans_{i}'] = flight_times[i] / safe_total_flight
                 

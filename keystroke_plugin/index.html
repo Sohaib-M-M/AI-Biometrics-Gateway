@@ -1058,8 +1058,10 @@
 
             let attemptData = [];
             for (let i = 0; i < cleanSeq.length; i++) {
-              let hold = (cleanSeq[i].up - cleanSeq[i].down) / 1000.0;
-              let flight = i > 0 ? (cleanSeq[i].down - cleanSeq[i - 1].up) / 1000.0 : 0;
+              let downTime = cleanSeq[i].down;
+              let upTime = cleanSeq[i].up || performance.now(); // Fallback if never released
+              let hold = (upTime - downTime) / 1000.0;
+              let flight = i > 0 ? Math.max(0, (downTime - (cleanSeq[i - 1].up || performance.now())) / 1000.0) : 0;
               // التعديل الهندسي 3: إرسال الحروف الكبيرة لبايثون ليتعرف عليها نموذج الذكاء الاصطناعي
               attemptData.push({
                 key: cleanSeq[i].key.toUpperCase(),
@@ -1091,13 +1093,17 @@
           return;
         }
         if (e.key.length !== 1) return;
-        keyPresses[e.key] = performance.now();
+        if (!keyPresses[e.key]) {
+          let entry = { key: e.key, down: performance.now(), up: null };
+          rawLog.push(entry);
+          keyPresses[e.key] = entry;
+        }
       });
 
       overrideInput.addEventListener("keyup", (e) => {
         if (e.key.length !== 1) return;
         if (keyPresses[e.key]) {
-          rawLog.push({ key: e.key, down: keyPresses[e.key], up: performance.now() });
+          keyPresses[e.key].up = performance.now();
           delete keyPresses[e.key];
         }
       });

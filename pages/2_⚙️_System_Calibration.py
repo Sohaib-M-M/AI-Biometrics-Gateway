@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from sklearn.ensemble import IsolationForest
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import RobustScaler
 import joblib
 import os
 
@@ -40,11 +40,18 @@ if enrollment_data:
             'std_hold': group['hold_time'].std() if len(group) > 1 else 0,
             'std_flight': group['flight_time'].std() if len(group) > 1 else 0
         }
+        total_hold = group['hold_time'].sum()
+        safe_total_hold = total_hold if total_hold > 0 else 1.0
+        hold_times = group['hold_time'].tolist()
         
         total_flight = group['flight_time'].sum()
         safe_total_flight = total_flight if total_flight > 0 else 1.0
         
         flight_times = group['flight_time'].tolist()
+        
+        for i in range(len(hold_times)):
+            f_dict[f'hold_ratio_{i}'] = hold_times[i] / safe_total_hold
+            
         for i in range(1, len(flight_times)):
             f_dict[f'digraph_trans_{i}'] = flight_times[i] / safe_total_flight
             
@@ -52,8 +59,8 @@ if enrollment_data:
         
     X_enroll = pd.DataFrame(features_list).fillna(0)
     
-    # 1. توحيد المقاييس (Feature Scaling) لضمان عدم طغيان خصائص على أخرى
-    scaler = StandardScaler()
+    # 1. توحيد المقاييس (Feature Scaling)
+    scaler = RobustScaler()
     X_scaled = scaler.fit_transform(X_enroll)
     
     # 2. تضييق دائرة القبول برفع نسبة التلوث إلى 5% (Contamination=0.05)

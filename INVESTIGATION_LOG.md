@@ -25,11 +25,16 @@
    *Issue*: Uses absolute times instead of relative rhythm proportions. Missing the 0.40s cap.
 
 ## 3. Applied Remediations & Execution Notes
-1. **Frontend JS**: Upgraded `Date.now()` to `performance.now()` in `keystroke_plugin/index.html`, `enrollment_plugin/index.html`, and `free_typing_plugin/index.html` to provide sub-millisecond precision.
+1. **Frontend JS**: 
+   - Upgraded `Date.now()` to `performance.now()` in `keystroke_plugin/index.html`, `enrollment_plugin/index.html`, and `free_typing_plugin/index.html` to provide sub-millisecond precision.
+   - Refactored `keyup`/`keydown` tracking to map active keys and append to `rawLog` on `keydown`. This preserves true chronological sequence and solves dropped event errors during high-speed key rollover.
 2. **Python Preprocessing**: 
    - Applied the `0.40s` flight time cap in `app.py` and `pages/2_⚙️_System_Calibration.py` using `df['flight_time'].clip(upper=0.40)` *before* any aggregate metrics are calculated.
    - Converted absolute flight times to relative rhythm ratios (`flight_times[i] / safe_total_flight`) to ensure resilience against minor global speed fluctuations.
-3. **ML Model**: Lowered `contamination` in `pages/2_⚙️_System_Calibration.py` to `0.05` to prevent discarding valid baseline variance.
+   - Converted absolute hold times to relative hold ratios (`hold_times[i] / safe_total_hold`) to stabilize dwell times during varied typing speeds.
+3. **ML Model**: 
+   - Lowered `contamination` in `pages/2_⚙️_System_Calibration.py` to `0.05` to prevent discarding valid baseline variance.
+   - Replaced `StandardScaler` with `RobustScaler` to protect against low-variance traps and extreme Z-scores.
 
 ## 4. Verification & Re-enrollment Guide
 1. Launch the Streamlit application (`streamlit run app.py`).
