@@ -123,7 +123,7 @@ with st.sidebar:
     st.markdown(
         """
         <div style="font-family: monospace; font-size: 11px; color: #6b7c85; line-height: 1.6;">
-            SYS_ENG: Sohaib Mosalem<br>
+            SYS_ENG: Sohaib Mohammed<br>
             NET_ID: <a href="https://www.linkedin.com/in/sohaib-m-m/" target="_blank" style="color: #33ff99; text-decoration: none;">LinkedIn Profile ↗</a>
         </div>
         """,
