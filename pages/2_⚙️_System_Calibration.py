@@ -26,20 +26,20 @@ if enrollment_data:
     
     df = pd.DataFrame(enrollment_data)
     
-    # 🛑 Fix: Outlier Capping before metrics calculation
-    df['flight_time'] = df['flight_time'].clip(upper=0.40)
+    # 🛑 Fix: Dynamic Outlier Capping before metrics calculation
+    # Applied locally per attempt during iteration to preserve individual rhythm
     
     features_list = []
     
     for attempt_id, group in df.groupby('attempt'):
         group = group.sort_index() 
-        f_dict = {
-            'total_time': group['hold_time'].sum() + group['flight_time'].sum(),
-            'avg_hold': group['hold_time'].mean(),
-            'avg_flight': group['flight_time'].mean(),
-            'std_hold': group['hold_time'].std() if len(group) > 1 else 0,
-            'std_flight': group['flight_time'].std() if len(group) > 1 else 0
-        }
+        
+        median_flight = group['flight_time'].median()
+        dynamic_cap = max(0.40, median_flight * 2.5)
+        group['flight_time'] = group['flight_time'].clip(upper=dynamic_cap)
+        
+        f_dict = {}
+        
         total_hold = group['hold_time'].sum()
         safe_total_hold = total_hold if total_hold > 0 else 1.0
         hold_times = group['hold_time'].tolist()

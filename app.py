@@ -49,16 +49,12 @@ if raw_keystrokes:
         if len(test_df) < 5:
             st.warning("⚠️ Incomplete biometrics captured. Please type the command completely and naturally.")
         else:
-            # 🛑 Fix: Outlier Capping before metrics calculation
-            test_df['flight_time'] = test_df['flight_time'].clip(upper=0.40)
+            # 🛑 Fix: Dynamic Outlier Capping before metrics calculation
+            median_flight = test_df['flight_time'].median()
+            dynamic_cap = max(0.40, median_flight * 2.5)
+            test_df['flight_time'] = test_df['flight_time'].clip(upper=dynamic_cap)
             
-            f_dict = {
-                'total_time': test_df['hold_time'].sum() + test_df['flight_time'].sum(),
-                'avg_hold': test_df['hold_time'].mean(),
-                'avg_flight': test_df['flight_time'].mean(),
-                'std_hold': test_df['hold_time'].std() if len(test_df) > 1 else 0,
-                'std_flight': test_df['flight_time'].std() if len(test_df) > 1 else 0
-            }
+            f_dict = {}
             total_hold = test_df['hold_time'].sum()
             safe_total_hold = total_hold if total_hold > 0 else 1.0
             hold_times = test_df['hold_time'].tolist()

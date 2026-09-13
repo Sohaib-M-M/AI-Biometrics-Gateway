@@ -36,7 +36,16 @@
    - Lowered `contamination` in `pages/2_⚙️_System_Calibration.py` to `0.05` to prevent discarding valid baseline variance.
    - Replaced `StandardScaler` with `RobustScaler` to protect against low-variance traps and extreme Z-scores.
 
-## 4. Verification & Re-enrollment Guide
+## 4. Phase 3 Technical Proposal: Addressing Slow-Typing False Rejections
+**Hypotheses Validated:**
+1. **0.40s Clipping Saturation:** Deliberately slow typing causes multiple valid flight transitions to hit the rigid 0.40s cap simultaneously. This flattens the relative rhythm distribution and destroys the user's authentic contour.
+2. **Residual Absolute Features:** `f_dict` still computes and stores `total_time`, `avg_hold`, `avg_flight`, `std_hold`, and `std_flight`. These absolute millisecond values inherently fluctuate with overall typing speed, forcing `RobustScaler` to generate massive outlier scores for slow pacing.
+
+**Implementation Plan:**
+1. **Dynamic Outlier Cap:** Replace `clip(upper=0.40)` with a session-aware dynamic ceiling (`max(0.40, median_flight * 2.5)`). This preserves the rhythm contour of slow typists while still catching extreme unnatural pauses.
+2. **Strict Normalized Feature Space (Tempo-Agnostic):** Completely purge all absolute timing features from `f_dict`. The model will be trained exclusively on `hold_ratio_{i}` and `digraph_trans_{i}`. This reduces dimensionality (solving the $N=15$ curse) and ensures 100% speed-invariant authentication.
+
+## 5. Verification & Re-enrollment Guide
 1. Launch the Streamlit application (`streamlit run app.py`).
 2. Navigate to the **⚙️ System Calibration** page from the sidebar.
 3. Type the emergency command `OVERRIDE-HYDRA-7745` exactly 15 times to generate a new baseline model that incorporates the new relative rhythm features.
